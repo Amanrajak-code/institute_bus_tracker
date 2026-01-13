@@ -1,0 +1,10 @@
+
+{
+  "name": "institute-bus-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve public",
+    "deploy": "vercel --prod"
+  }
+}
