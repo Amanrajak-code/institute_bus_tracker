@@ -1,0 +1,54 @@
+{
+  "name": "Institute Bus Tracker",
+  "short_name": "BusTracker",
+  "description": "Real-time bus tracking system for institute",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#4361ee",
+  "theme_color": "#4361ee",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "navigation",
+    "productivity"
+  ],
+  "shortcuts": [
+    {
+      "name": "Driver App",
+      "short_name": "Driver",
+      "description": "Update bus location",
+      "url": "/driver",
+      "icons": [
+        {
+          "src": "/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Student Dashboard",
+      "short_name": "Tracker",
+      "description": "Track buses live",
+      "url": "/student",
+      "icons": [
+        {
+          "src": "/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}

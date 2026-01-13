@@ -1,0 +1,912 @@
+<!-- public/driver.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚍 Driver App - Bus Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --danger: #7209b7;
+            --dark: #3a0ca3;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .logo {
+            font-size: 50px;
+            margin-bottom: 10px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .content {
+            padding: 30px 25px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .bus-selector {
+            margin-bottom: 25px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 15px;
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            background: white;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234361ee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 20px;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .status-btn {
+            padding: 20px 15px;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status-btn.active {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .status-on { background: linear-gradient(135deg, #4cc9f0, #4361ee); }
+        .status-stop { background: linear-gradient(135deg, #f72585, #b5179e); }
+        .status-delay { background: linear-gradient(135deg, #ff9e00, #ff9100); }
+        .status-break { background: linear-gradient(135deg, #7209b7, #560bad); }
+        
+        .timer-container {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            margin: 25px 0;
+            border: 3px dashed var(--primary);
+        }
+        
+        .timer {
+            font-size: 60px;
+            font-weight: 800;
+            color: var(--dark);
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        
+        .location-status {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 600;
+            border-left: 5px solid var(--primary);
+        }
+        
+        .location-success { border-color: #4cc9f0; background: #f0f9ff; }
+        .location-error { border-color: #f72585; background: #fff0f3; }
+        
+        .action-btn {
+            width: 100%;
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            transition: all 0.3s;
+        }
+        
+        .primary-btn {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
+        }
+        
+        .primary-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(67, 97, 238, 0.4);
+        }
+        
+        .emergency-btn {
+            background: linear-gradient(135deg, #f72585, #b5179e);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(247, 37, 133, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(247, 37, 133, 0); }
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .stat-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @media (max-width: 500px) {
+            body { padding: 10px; }
+            .container { border-radius: 20px; }
+            .status-grid { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🚍</div>
+            <h1>Bus Driver</h1>
+            <p>Institute Transportation System</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Bus Selection -->
+            <div class="bus-selector">
+                <select id="busSelect" onchange="saveBusNumber()">
+                    <option value="">Select Your Bus</option>
+                    <option value="BUS-001">BUS-001 (Route A)</option>
+                    <option value="BUS-002">BUS-002 (Route B)</option>
+                    <option value="BUS-003">BUS-003 (Route C)</option>
+                    <option value="BUS-004">BUS-004 (Route D)</option>
+                    <option value="BUS-005">BUS-005 (Route E)</option>
+                </select>
+            </div>
+            
+            <!-- Auto Update Toggle -->
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 15px; margin: 20px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="display: block;">🔄 Auto Update</strong>
+                        <small style="color: #666;">Updates every 5 minutes automatically</small>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="autoUpdate" checked onchange="toggleAutoUpdate()">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div id="timerDisplay" style="text-align: center; margin-top: 10px; font-size: 14px; color: #666;">
+                    Next update: <span id="nextUpdate">05:00</span>
+                </div>
+            </div>
+            
+            <!-- Status Buttons -->
+            <div class="status-grid">
+                <button class="status-btn status-on" onclick="setStatus('On Route', this)">
+                    🟢 On Route
+                </button>
+                <button class="status-btn status-stop" onclick="setStatus('At Stop', this)">
+                    🟡 At Stop
+                </button>
+                <button class="status-btn status-delay" onclick="setStatus('Delayed', this)">
+                    🟠 Delayed
+                </button>
+                <button class="status-btn status-break" onclick="setStatus('Breakdown', this)">
+                    🔴 Breakdown
+                </button>
+            </div>
+            
+            <!-- Next Stop -->
+            <div style="margin: 25px 0;">
+                <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">
+                    <i class="fas fa-map-marker-alt"></i> Next Stop
+                </label>
+                <select id="nextStop" style="width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #e0e0e0;">
+                    <option value="Main Gate">Main Gate</option>
+                    <option value="Academic Block">Academic Block</option>
+                    <option value="Library">Library</option>
+                    <option value="Hostel">Hostel</option>
+                    <option value="Sports Complex">Sports Complex</option>
+                    <option value="Admin Building">Admin Building</option>
+                </select>
+            </div>
+            
+            <!-- Location Status -->
+            <div id="locationStatus" class="location-status">
+                <i class="fas fa-sync fa-spin"></i> Waiting for location...
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="updateCount">0</div>
+                    <div class="stat-label">Updates Today</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="speedValue">0</div>
+                    <div class="stat-label">km/h</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="lastUpdate">--:--</div>
+                    <div class="stat-label">Last Update</div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <button class="action-btn primary-btn" onclick="updateLocation()">
+                <i class="fas fa-satellite"></i> UPDATE LOCATION NOW
+            </button>
+            
+            <button class="action-btn emergency-btn" onclick="sendEmergency()">
+                <i class="fas fa-exclamation-triangle"></i> EMERGENCY ALERT
+            </button>
+            
+            <!-- Quick Actions -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                <button onclick="openTelegram()" style="padding: 12px; background: #0088cc; color: white; border: none; border-radius: 10px; font-size: 14px;">
+                    <i class="fab fa-telegram"></i> Telegram
+                </button>
+                <button onclick="testSystem()" style="padding: 12px; background: #28a745; color: white; border: none; border-radius: 10px; font-size: 14px;">
+                    <i class="fas fa-vial"></i> Test System
+                </button>
+            </div>
+            
+            <!-- Instructions -->
+            <div style="margin-top: 25px; padding: 15px; background: #f0f7ff; border-radius: 15px; border-left: 5px solid #4cc9f0;">
+                <p style="margin: 0; font-size: 14px; color: #333;">
+                    <strong>💡 Tip:</strong> Keep this page open during your shift. 
+                    System updates automatically every 5 minutes.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Install Prompt -->
+    <div id="installPrompt" class="install-prompt" style="display: none;">
+        <div>
+            <strong>📱 Install App</strong>
+            <p style="margin: 5px 0 0 0; font-size: 12px;">For quick access</p>
+        </div>
+        <button onclick="installApp()" style="background: white; color: #4361ee; border: none; padding: 8px 15px; border-radius: 10px; font-weight: 600;">
+            Install
+        </button>
+    </div>
+
+    <!-- Script -->
+    <script>
+        // Configuration
+        const CONFIG = {
+            GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwfs6alQLii7uG7TZ7yxOF5xcUBijNsqgff4dYcO7Qm--21FsTgpkXB9I9lGKhqNRDHSw/exec', // Replace with your Apps Script URL
+            UPDATE_INTERVAL: 5 * 60 * 1000, // 5 minutes in milliseconds
+            INSTITUTE_LOCATION: { lat: 25.533767895796892, lng: 84.85539728111038 } // Default location
+        };
+
+        // State
+        let state = {
+            busNumber: localStorage.getItem('busNumber') || '',
+            status: localStorage.getItem('status') || 'On Route',
+            updateCount: parseInt(localStorage.getItem('updateCount')) || 0,
+            autoUpdate: localStorage.getItem('autoUpdate') !== 'false',
+            lastLocation: null,
+            lastUpdateTime: null,
+            updateTimer: null,
+            watchId: null
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadState();
+            setupServiceWorker();
+            setupGeolocation();
+            setupVisibilityListener();
+            
+            // Check for PWA install prompt
+            checkInstallPrompt();
+            
+            // Start auto-update if enabled
+            if (state.autoUpdate && state.busNumber) {
+                startAutoUpdate();
+            }
+        });
+
+        // Load state from localStorage
+        function loadState() {
+            if (state.busNumber) {
+                document.getElementById('busSelect').value = state.busNumber;
+            }
+            document.getElementById('autoUpdate').checked = state.autoUpdate;
+            document.getElementById('updateCount').textContent = state.updateCount;
+            
+            if (state.lastUpdateTime) {
+                const time = new Date(state.lastUpdateTime);
+                document.getElementById('lastUpdate').textContent = 
+                    time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            
+            // Highlight active status
+            highlightActiveStatus();
+        }
+
+        // Save bus number
+        function saveBusNumber() {
+            state.busNumber = document.getElementById('busSelect').value;
+            localStorage.setItem('busNumber', state.busNumber);
+            
+            if (state.busNumber && state.autoUpdate) {
+                startAutoUpdate();
+            }
+        }
+
+        // Set status
+        function setStatus(newStatus, button) {
+            state.status = newStatus;
+            localStorage.setItem('status', newStatus);
+            
+            // Update UI
+            highlightActiveStatus();
+            
+            // Auto-update location with new status
+            if (state.busNumber) {
+                updateLocation();
+            }
+        }
+
+        // Highlight active status
+        function highlightActiveStatus() {
+            document.querySelectorAll('.status-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes(state.status)) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Toggle auto-update
+        function toggleAutoUpdate() {
+            state.autoUpdate = document.getElementById('autoUpdate').checked;
+            localStorage.setItem('autoUpdate', state.autoUpdate);
+            
+            if (state.autoUpdate && state.busNumber) {
+                startAutoUpdate();
+            } else {
+                stopAutoUpdate();
+            }
+        }
+
+        // Start auto-update
+        function startAutoUpdate() {
+            stopAutoUpdate();
+            
+            // Update immediately
+            updateLocation();
+            
+            // Then every 5 minutes
+            state.updateTimer = setInterval(updateLocation, CONFIG.UPDATE_INTERVAL);
+            
+            // Start countdown timer
+            startCountdownTimer();
+        }
+
+        // Stop auto-update
+        function stopAutoUpdate() {
+            if (state.updateTimer) {
+                clearInterval(state.updateTimer);
+                state.updateTimer = null;
+            }
+            document.getElementById('nextUpdate').textContent = '--:--';
+        }
+
+        // Countdown timer
+        function startCountdownTimer() {
+            let seconds = 300; // 5 minutes
+            
+            const updateDisplay = () => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                document.getElementById('nextUpdate').textContent = 
+                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+            
+            updateDisplay();
+            
+            const countdown = setInterval(() => {
+                seconds--;
+                updateDisplay();
+                
+                if (seconds <= 0) {
+                    clearInterval(countdown);
+                    startCountdownTimer(); // Restart
+                }
+            }, 1000);
+        }
+
+        // Update location
+        function updateLocation() {
+            if (!state.busNumber) {
+                showNotification('Please select your bus number first', 'error');
+                return;
+            }
+            
+            document.getElementById('locationStatus').innerHTML = 
+                '<i class="fas fa-sync fa-spin"></i> Getting location...';
+            document.getElementById('locationStatus').className = 'location-status';
+            
+            if (!navigator.geolocation) {
+                fallbackLocation();
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    // Success
+                    sendLocationToServer(
+                        position.coords.latitude,
+                        position.coords.longitude,
+                        position.coords.speed || 0
+                    );
+                },
+                (error) => {
+                    // Error
+                    console.error('Geolocation error:', error);
+                    fallbackLocation();
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        // Send location to Google Sheets
+        async function sendLocationToServer(lat, lng, speed) {
+            const nextStop = document.getElementById('nextStop').value;
+            
+            const data = {
+                bus_id: state.busNumber,
+                lat: lat,
+                lng: lng,
+                status: state.status,
+                next_stop: nextStop,
+                speed: speed ? (speed * 3.6).toFixed(1) : 0, // Convert m/s to km/h
+                direction: 'N' // Simplified
+            };
+            
+            try {
+                const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Important for Google Apps Script
+                    body: JSON.stringify(data),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                // Update state
+                state.updateCount++;
+                state.lastUpdateTime = new Date();
+                state.lastLocation = { lat, lng };
+                
+                // Save to localStorage
+                localStorage.setItem('updateCount', state.updateCount);
+                localStorage.setItem('lastUpdateTime', state.lastUpdateTime.toISOString());
+                
+                // Update UI
+                document.getElementById('updateCount').textContent = state.updateCount;
+                document.getElementById('speedValue').textContent = data.speed;
+                document.getElementById('lastUpdate').textContent = 
+                    state.lastUpdateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                document.getElementById('locationStatus').innerHTML = 
+                    `<i class="fas fa-check-circle"></i> Updated at ${state.lastUpdateTime.toLocaleTimeString()}`;
+                document.getElementById('locationStatus').className = 'location-status location-success';
+                
+                // Show notification
+                showNotification('Location updated successfully!', 'success');
+                
+                // Vibrate if supported
+                if (navigator.vibrate) navigator.vibrate(100);
+                
+            } catch (error) {
+                console.error('Server error:', error);
+                document.getElementById('locationStatus').innerHTML = 
+                    '<i class="fas fa-exclamation-triangle"></i> Update failed, storing locally';
+                document.getElementById('locationStatus').className = 'location-status location-error';
+                
+                // Store locally for retry
+                storeForRetry(data);
+            }
+        }
+
+        // Fallback location
+        function fallbackLocation() {
+            if (state.lastLocation) {
+                sendLocationToServer(state.lastLocation.lat, state.lastLocation.lng, 0);
+            } else {
+                // Use institute location as fallback
+                sendLocationToServer(
+                    CONFIG.INSTITUTE_LOCATION.lat,
+                    CONFIG.INSTITUTE_LOCATION.lng,
+                    0
+                );
+            }
+        }
+
+        // Store for retry
+        function storeForRetry(data) {
+            const failed = JSON.parse(localStorage.getItem('failedUpdates') || '[]');
+            failed.push({ ...data, timestamp: new Date().toISOString() });
+            localStorage.setItem('failedUpdates', JSON.stringify(failed));
+        }
+
+        // Retry failed updates
+        async function retryFailedUpdates() {
+            const failed = JSON.parse(localStorage.getItem('failedUpdates') || '[]');
+            
+            for (const update of failed) {
+                try {
+                    await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify(update)
+                    });
+                    
+                    // Remove from failed list
+                    failed.splice(failed.indexOf(update), 1);
+                    localStorage.setItem('failedUpdates', JSON.stringify(failed));
+                } catch (error) {
+                    console.error('Retry failed:', error);
+                }
+            }
+        }
+
+        // Emergency alert
+        function sendEmergency() {
+            if (!state.busNumber) {
+                showNotification('Select bus number first', 'error');
+                return;
+            }
+            
+            if (confirm('🚨 Send EMERGENCY ALERT to transport office?')) {
+                state.status = 'EMERGENCY';
+                updateLocation();
+                showNotification('EMERGENCY ALERT SENT!', 'emergency');
+                
+                // Additional emergency actions
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'error' ? '#f72585' : type === 'success' ? '#4cc9f0' : '#4361ee'};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 15px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+                z-index: 10000;
+                animation: slideInRight 0.3s ease-out;
+                max-width: 300px;
+            `;
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+            
+            // Add animation styles
+            if (!document.querySelector('#notification-styles')) {
+                const style = document.createElement('style');
+                style.id = 'notification-styles';
+                style.textContent = `
+                    @keyframes slideInRight {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes slideOutRight {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(100%); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Setup geolocation watching
+        function setupGeolocation() {
+            if (navigator.geolocation && state.autoUpdate) {
+                state.watchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        // Store latest position for quick updates
+                        state.lastLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                    },
+                    (error) => console.error('Geolocation watch error:', error),
+                    { enableHighAccuracy: false, maximumAge: 30000 }
+                );
+            }
+        }
+
+        // Setup visibility listener
+        function setupVisibilityListener() {
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && state.autoUpdate && state.busNumber) {
+                    updateLocation();
+                }
+            });
+        }
+
+        // Setup service worker for PWA
+        function setupServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered');
+                        
+                        // Check for updates every hour
+                        setInterval(() => {
+                            registration.update();
+                        }, 60 * 60 * 1000);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            }
+        }
+
+        // Check for PWA install prompt
+        function checkInstallPrompt() {
+            let deferredPrompt;
+            
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                
+                // Show install prompt after 5 seconds
+                setTimeout(() => {
+                    if (deferredPrompt) {
+                        document.getElementById('installPrompt').style.display = 'flex';
+                    }
+                }, 5000);
+            });
+        }
+
+        // Install as PWA
+        function installApp() {
+            if (window.deferredPrompt) {
+                window.deferredPrompt.prompt();
+                window.deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted install');
+                        document.getElementById('installPrompt').style.display = 'none';
+                    }
+                    window.deferredPrompt = null;
+                });
+            }
+        }
+
+        // Open Telegram
+        function openTelegram() {
+            window.open('https://t.me/your_bus_bot', '_blank');
+        }
+
+        // Test system
+        function testSystem() {
+            if (!state.busNumber) {
+                alert('Please select a bus number first');
+                return;
+            }
+            
+            // Simulate a test update
+            const testData = {
+                bus_id: state.busNumber,
+                lat: CONFIG.INSTITUTE_LOCATION.lat + (Math.random() * 0.01 - 0.005),
+                lng: CONFIG.INSTITUTE_LOCATION.lng + (Math.random() * 0.01 - 0.005),
+                status: 'Test Mode',
+                next_stop: 'Test Stop',
+                speed: 30 + Math.random() * 20
+            };
+            
+            sendLocationToServer(testData.lat, testData.lng, testData.speed / 3.6);
+            showNotification('Test update sent successfully!', 'success');
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+U to update
+            if (e.ctrlKey && e.key === 'u') {
+                e.preventDefault();
+                updateLocation();
+            }
+            // Ctrl+E for emergency
+            if (e.ctrlKey && e.key === 'e') {
+                e.preventDefault();
+                sendEmergency();
+            }
+        });
+    </script>
+    
+    <style>
+        /* Switch toggle */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+        }
+        
+        input:checked + .slider {
+            background-color: #4cc9f0;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .slider.round {
+            border-radius: 34px;
+        }
+        
+        .slider.round:before {
+            border-radius: 50%;
+        }
+    </style>
+</body>
+</html>

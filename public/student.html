@@ -1,0 +1,566 @@
+<!-- public/student.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚍 Live Bus Tracker - Student</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui; }
+        
+        .header {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+        
+        .sidebar {
+            width: 350px;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        #map {
+            flex: 1;
+        }
+        
+        .bus-card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border-left: 5px solid #4361ee;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .bus-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .bus-card.emergency {
+            border-left-color: #f72585;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(247, 37, 133, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(247, 37, 133, 0); }
+        }
+        
+        .bus-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .bus-id {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-on { background: #e8f5e9; color: #2e7d32; }
+        .status-stop { background: #fff3e0; color: #ef6c00; }
+        .status-delay { background: #fff8e1; color: #ff8f00; }
+        .status-emergency { background: #ffebee; color: #c62828; }
+        
+        .bus-info {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .control-btn {
+            flex: 1;
+            padding: 12px;
+            background: white;
+            border: 2px solid #4361ee;
+            border-radius: 10px;
+            color: #4361ee;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .control-btn:hover {
+            background: #4361ee;
+            color: white;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        
+        .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-tag {
+            padding: 8px 15px;
+            background: #e0e0e0;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .filter-tag.active {
+            background: #4361ee;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; height: 40vh; }
+            #map { height: 60vh; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚍 Live Bus Tracker</h1>
+        <p>Real-time tracking of institute buses</p>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <!-- Controls -->
+            <div class="controls">
+                <button class="control-btn" onclick="refreshData()">
+                    🔄 Refresh
+                </button>
+                <button class="control-btn" onclick="centerToInstitute()">
+                    🏫 Center
+                </button>
+                <button class="control-btn" onclick="showAllBuses()">
+                    👁️ All Buses
+                </button>
+            </div>
+            
+            <!-- Search -->
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search bus or route..." 
+                       onkeyup="filterBuses()">
+            </div>
+            
+            <!-- Filters -->
+            <div class="filter-tags">
+                <span class="filter-tag active" onclick="filterByStatus('all')">All</span>
+                <span class="filter-tag" onclick="filterByStatus('On Route')">On Route</span>
+                <span class="filter-tag" onclick="filterByStatus('At Stop')">At Stop</span>
+                <span class="filter-tag" onclick="filterByStatus('Delayed')">Delayed</span>
+                <span class="filter-tag" onclick="filterByStatus('Breakdown')">Breakdown</span>
+            </div>
+            
+            <!-- Bus List -->
+            <div id="busList">
+                <!-- Bus cards will be loaded here -->
+                <p style="text-align: center; color: #666; margin-top: 50px;">
+                    Loading buses...
+                </p>
+            </div>
+        </div>
+        
+        <!-- Map -->
+        <div id="map"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Configuration
+        const CONFIG = {
+            GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwfs6alQLii7uG7TZ7yxOF5xcUBijNsqgff4dYcO7Qm--21FsTgpkXB9I9lGKhqNRDHSw/exec', // Same as driver app
+            INSTITUTE_LOCATION: { lat: 25.533767895796892, lng: 84.85539728111038 }, // Your institute coordinates
+            UPDATE_INTERVAL: 10000, // 10 seconds
+            STOPS: [
+                { name: "Academic circle", lat: 25.534525205934752, lng:84.8539064472547},
+                { name: "TUT Block", lat: 25.532651851088584, lng: 84.85187449592549},
+                { name: "Library", lat: 25.541234718341105, lng: 84.85285539230291},
+                { name: "Hostel", lat: 25.541234718341105, lng: 84.85285539230291 },
+                { name: "Sports Complex", lat: 25.541234718341105, lng: 84.85285539230291 }
+            ]
+        };
+
+        // State
+        let map = null;
+        let buses = [];
+        let markers = {};
+        let popups = {};
+        let currentFilter = 'all';
+        let currentSearch = '';
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([CONFIG.INSTITUTE_LOCATION.lat, CONFIG.INSTITUTE_LOCATION.lng], 15);
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+            
+            // Add institute marker
+            L.marker([CONFIG.INSTITUTE_LOCATION.lat, CONFIG.INSTITUTE_LOCATION.lng])
+                .addTo(map)
+                .bindPopup('<b>🏫 Institute Campus</b>')
+                .openPopup();
+            
+            // Add bus stops
+            CONFIG.STOPS.forEach(stop => {
+                L.circleMarker([stop.lat, stop.lng], {
+                    color: '#4361ee',
+                    fillColor: '#4361ee',
+                    fillOpacity: 0.5,
+                    radius: 8
+                })
+                .addTo(map)
+                .bindPopup(`<b>🚏 ${stop.name}</b>`);
+            });
+            
+            // Load initial data
+            loadBusData();
+            
+            // Set up auto-refresh
+            setInterval(loadBusData, CONFIG.UPDATE_INTERVAL);
+            
+            // Add keyboard shortcuts
+            setupKeyboardShortcuts();
+        }
+
+        // Load bus data from Google Sheets
+        async function loadBusData() {
+            try {
+                const response = await fetch(CONFIG.GOOGLE_SCRIPT_URL);
+                const data = await response.json();
+                
+                if (data.success) {
+                    buses = data.buses;
+                    updateBusList();
+                    updateMapMarkers();
+                }
+            } catch (error) {
+                console.error('Error loading bus data:', error);
+                document.getElementById('busList').innerHTML = `
+                    <p style="color: #f72585; text-align: center; padding: 20px;">
+                        ⚠️ Connection error. Trying again...
+                    </p>
+                `;
+            }
+        }
+
+        // Update bus list in sidebar
+        function updateBusList() {
+            const container = document.getElementById('busList');
+            
+            if (buses.length === 0) {
+                container.innerHTML = `
+                    <p style="text-align: center; color: #666; padding: 20px;">
+                        No buses currently active
+                    </p>
+                `;
+                return;
+            }
+            
+            // Filter buses
+            let filteredBuses = buses;
+            
+            if (currentFilter !== 'all') {
+                filteredBuses = buses.filter(bus => bus.status === currentFilter);
+            }
+            
+            if (currentSearch) {
+                const searchLower = currentSearch.toLowerCase();
+                filteredBuses = filteredBuses.filter(bus => 
+                    bus.bus_id.toLowerCase().includes(searchLower) ||
+                    (bus.next_stop && bus.next_stop.toLowerCase().includes(searchLower)) ||
+                    bus.status.toLowerCase().includes(searchLower)
+                );
+            }
+            
+            // Generate HTML
+            let html = '';
+            
+            filteredBuses.forEach(bus => {
+                const statusClass = getStatusClass(bus.status);
+                const lastUpdate = new Date(bus.last_update);
+                const minutesAgo = Math.floor((new Date() - lastUpdate) / (1000 * 60));
+                
+                html += `
+                <div class="bus-card ${bus.status === 'Breakdown' ? 'emergency' : ''}" 
+                     onclick="focusBus('${bus.bus_id}')">
+                    <div class="bus-header">
+                        <span class="bus-id">${bus.bus_id}</span>
+                        <span class="status ${statusClass}">${bus.status}</span>
+                    </div>
+                    <div class="bus-info">
+                        <div class="info-item">
+                            <span>📍 Next Stop:</span>
+                            <span><strong>${bus.next_stop || 'Unknown'}</strong></span>
+                        </div>
+                        <div class="info-item">
+                            <span>⏱️ Last Update:</span>
+                            <span>${minutesAgo} min ago</span>
+                        </div>
+                        <div class="info-item">
+                            <span>🚀 Speed:</span>
+                            <span>${bus.speed || 0} km/h</span>
+                        </div>
+                        <div class="info-item">
+                            <span>🧭 Direction:</span>
+                            <span>${bus.direction || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Update markers on map
+        function updateMapMarkers() {
+            // Clear old markers
+            Object.values(markers).forEach(marker => map.removeLayer(marker));
+            markers = {};
+            popups = {};
+            
+            // Add new markers
+            buses.forEach(bus => {
+                if (!bus.lat || !bus.lng) return;
+                
+                // Choose icon based on status
+                const icon = L.divIcon({
+                    className: 'bus-marker',
+                    html: getBusIconHTML(bus),
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
+                });
+                
+                // Create marker
+                const marker = L.marker([bus.lat, bus.lng], { icon })
+                    .addTo(map);
+                
+                // Create popup
+                const popupContent = `
+                    <div style="padding: 10px;">
+                        <h3 style="margin: 0 0 10px 0;">${bus.bus_id}</h3>
+                        <p><strong>Status:</strong> ${bus.status}</p>
+                        <p><strong>Next Stop:</strong> ${bus.next_stop || 'Unknown'}</p>
+                        <p><strong>Speed:</strong> ${bus.speed || 0} km/h</p>
+                        <p><strong>Last Update:</strong> ${new Date(bus.last_update).toLocaleTimeString()}</p>
+                        <button onclick="focusBus('${bus.bus_id}')" 
+                                style="margin-top: 10px; padding: 5px 10px; background: #4361ee; color: white; border: none; border-radius: 5px;">
+                            Track Bus
+                        </button>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                
+                // Store references
+                markers[bus.bus_id] = marker;
+                popups[bus.bus_id] = popupContent;
+            });
+        }
+
+        // Get bus icon HTML
+        function getBusIconHTML(bus) {
+            const colors = {
+                'On Route': '#4cc9f0',
+                'At Stop': '#f72585',
+                'Delayed': '#ff9100',
+                'Breakdown': '#7209b7',
+                'EMERGENCY': '#ff0000'
+            };
+            
+            const color = colors[bus.status] || '#4361ee';
+            
+            return `
+                <div style="
+                    background: ${color};
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-weight: bold;
+                    font-size: 14px;
+                    border: 3px solid white;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                ">
+                    ${bus.bus_id.replace('BUS-', '')}
+                </div>
+            `;
+        }
+
+        // Get status class
+        function getStatusClass(status) {
+            const classes = {
+                'On Route': 'status-on',
+                'At Stop': 'status-stop',
+                'Delayed': 'status-delay',
+                'Breakdown': 'status-emergency',
+                'EMERGENCY': 'status-emergency'
+            };
+            return classes[status] || 'status-on';
+        }
+
+        // Filter buses by status
+        function filterByStatus(status) {
+            currentFilter = status;
+            
+            // Update filter tags
+            document.querySelectorAll('.filter-tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            updateBusList();
+        }
+
+        // Filter buses by search
+        function filterBuses() {
+            currentSearch = document.getElementById('searchInput').value;
+            updateBusList();
+        }
+
+        // Focus on specific bus
+        function focusBus(busId) {
+            const marker = markers[busId];
+            if (marker) {
+                map.setView(marker.getLatLng(), 16);
+                marker.openPopup();
+            }
+        }
+
+        // Refresh data
+        function refreshData() {
+            loadBusData();
+            showNotification('Data refreshed', 'success');
+        }
+
+        // Center to institute
+        function centerToInstitute() {
+            map.setView([CONFIG.INSTITUTE_LOCATION.lat, CONFIG.INSTITUTE_LOCATION.lng], 15);
+        }
+
+        // Show all buses
+        function showAllBuses() {
+            if (buses.length === 0) return;
+            
+            const group = new L.featureGroup(Object.values(markers));
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#4cc9f0' : '#4361ee'};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 15px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+                z-index: 10000;
+                animation: slideInRight 0.3s ease-out;
+            `;
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Setup keyboard shortcuts
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // R to refresh
+                if (e.key === 'r' || e.key === 'R') {
+                    e.preventDefault();
+                    refreshData();
+                }
+                // C to center
+                if (e.key === 'c' || e.key === 'C') {
+                    e.preventDefault();
+                    centerToInstitute();
+                }
+                // Esc to clear search
+                if (e.key === 'Escape') {
+                    document.getElementById('searchInput').value = '';
+                    currentSearch = '';
+                    updateBusList();
+                }
+            });
+        }
+
+        // Initialize when page loads
+        window.onload = initMap;
+    </script>
+    
+    <style>
+        /* Animation styles */
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    </style>
+</body>
+</html>
