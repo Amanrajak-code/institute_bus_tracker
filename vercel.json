@@ -1,4 +1,3 @@
-
 {
   "name": "institute-bus-tracker",
   "version": 2,
@@ -8,22 +7,22 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/",
-      "dest": "/public/index.html"
+      "source": "/",
+      "destination": "/public/index.html"
     },
     {
-      "src": "/driver",
-      "dest": "/public/driver.html"
+      "source": "/driver",
+      "destination": "/public/driver.html"
     },
     {
-      "src": "/student",
-      "dest": "/public/student.html"
+      "source": "/student",
+      "destination": "/public/student.html"
     },
     {
-      "src": "/(.*)",
-      "dest": "/public/$1"
+      "source": "/(.*)",
+      "destination": "/public/$1"
     }
   ],
   "headers": [
