@@ -281,7 +281,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <strong style="display: block;">🔄 Auto Update</strong>
-                        <small style="color: #666;">Updates every 5 minutes automatically</small>
+                        <small style="color: #666;">Updates every 1 minute automatically</small>
                     </div>
                     <label class="switch">
                         <input type="checkbox" id="autoUpdate" checked onchange="toggleAutoUpdate()">
@@ -289,7 +289,7 @@
                     </label>
                 </div>
                 <div id="timerDisplay" style="text-align: center; margin-top: 10px; font-size: 14px; color: #666;">
-                    Next update: <span id="nextUpdate">05:00</span>
+                    Next update: <span id="nextUpdate">01:00</span>
                 </div>
             </div>
             
@@ -301,28 +301,10 @@
                 <button class="status-btn status-stop" onclick="setStatus('At Stop', this)">
                     🟡 At Stop
                 </button>
-                <button class="status-btn status-delay" onclick="setStatus('Delayed', this)">
-                    🟠 Delayed
-                </button>
-                <button class="status-btn status-break" onclick="setStatus('Breakdown', this)">
-                    🔴 Breakdown
-                </button>
+
             </div>
             
-            <!-- Next Stop -->
-            <div style="margin: 25px 0;">
-                <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">
-                    <i class="fas fa-map-marker-alt"></i> Next Stop
-                </label>
-                <select id="nextStop" style="width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #e0e0e0;">
-                    <option value="Main Gate">Main Gate</option>
-                    <option value="Academic Block">Academic Block</option>
-                    <option value="Library">Library</option>
-                    <option value="Hostel">Hostel</option>
-                    <option value="Sports Complex">Sports Complex</option>
-                    <option value="Admin Building">Admin Building</option>
-                </select>
-            </div>
+
             
             <!-- Location Status -->
             <div id="locationStatus" class="location-status">
@@ -350,25 +332,15 @@
                 <i class="fas fa-satellite"></i> UPDATE LOCATION NOW
             </button>
             
-            <button class="action-btn emergency-btn" onclick="sendEmergency()">
-                <i class="fas fa-exclamation-triangle"></i> EMERGENCY ALERT
-            </button>
+
             
-            <!-- Quick Actions -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
-                <button onclick="openTelegram()" style="padding: 12px; background: #0088cc; color: white; border: none; border-radius: 10px; font-size: 14px;">
-                    <i class="fab fa-telegram"></i> Telegram
-                </button>
-                <button onclick="testSystem()" style="padding: 12px; background: #28a745; color: white; border: none; border-radius: 10px; font-size: 14px;">
-                    <i class="fas fa-vial"></i> Test System
-                </button>
-            </div>
+
             
             <!-- Instructions -->
             <div style="margin-top: 25px; padding: 15px; background: #f0f7ff; border-radius: 15px; border-left: 5px solid #4cc9f0;">
                 <p style="margin: 0; font-size: 14px; color: #333;">
                     <strong>💡 Tip:</strong> Keep this page open during your shift. 
-                    System updates automatically every 5 minutes.
+                    System updates automatically every 1 minute.
                 </p>
             </div>
         </div>
@@ -390,7 +362,7 @@
         // Configuration
         const CONFIG = {
             GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwfs6alQLii7uG7TZ7yxOF5xcUBijNsqgff4dYcO7Qm--21FsTgpkXB9I9lGKhqNRDHSw/exec', // Replace with your Apps Script URL
-            UPDATE_INTERVAL: 5 * 60 * 1000, // 5 minutes in milliseconds
+            UPDATE_INTERVAL: 1 * 60 * 1000, // 1 minute in milliseconds
             INSTITUTE_LOCATION: { lat: 25.533767895796892, lng: 84.85539728111038 } // Default location
         };
 
@@ -511,7 +483,7 @@
 
         // Countdown timer
         function startCountdownTimer() {
-            let seconds = 300; // 5 minutes
+            let seconds = 60; // 1 minute
             
             const updateDisplay = () => {
                 const mins = Math.floor(seconds / 60);
@@ -573,7 +545,7 @@
 
         // Send location to Google Sheets
         async function sendLocationToServer(lat, lng, speed) {
-            const nextStop = document.getElementById('nextStop').value;
+            const nextStop = 'N/A';
             
             const data = {
                 bus_id: state.busNumber,
@@ -673,22 +645,7 @@
             }
         }
 
-        // Emergency alert
-        function sendEmergency() {
-            if (!state.busNumber) {
-                showNotification('Select bus number first', 'error');
-                return;
-            }
-            
-            if (confirm('🚨 Send EMERGENCY ALERT to transport office?')) {
-                state.status = 'EMERGENCY';
-                updateLocation();
-                showNotification('EMERGENCY ALERT SENT!', 'emergency');
-                
-                // Additional emergency actions
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
-            }
-        }
+
 
         // Show notification
         function showNotification(message, type = 'info') {
@@ -814,31 +771,7 @@
             }
         }
 
-        // Open Telegram
-        function openTelegram() {
-            window.open('https://t.me/your_bus_bot', '_blank');
-        }
 
-        // Test system
-        function testSystem() {
-            if (!state.busNumber) {
-                alert('Please select a bus number first');
-                return;
-            }
-            
-            // Simulate a test update
-            const testData = {
-                bus_id: state.busNumber,
-                lat: CONFIG.INSTITUTE_LOCATION.lat + (Math.random() * 0.01 - 0.005),
-                lng: CONFIG.INSTITUTE_LOCATION.lng + (Math.random() * 0.01 - 0.005),
-                status: 'Test Mode',
-                next_stop: 'Test Stop',
-                speed: 30 + Math.random() * 20
-            };
-            
-            sendLocationToServer(testData.lat, testData.lng, testData.speed / 3.6);
-            showNotification('Test update sent successfully!', 'success');
-        }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -848,10 +781,7 @@
                 updateLocation();
             }
             // Ctrl+E for emergency
-            if (e.ctrlKey && e.key === 'e') {
-                e.preventDefault();
-                sendEmergency();
-            }
+
         });
     </script>
     
